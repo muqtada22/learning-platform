@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth API Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .form-section {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Learning Platform API Authentication Demo</h1>
+    
+    <div class="container">
+        <div class="form-section">
+            <h2>Register</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerName">Name</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPasswordConfirmation">Confirm Password</label>
+                    <input type="password" id="registerPasswordConfirmation" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerRole">Role</label>
+                    <select id="registerRole">
+                        <option value="student">Student</option>
+                        <option value="professor">Professor</option>
+                    </select>
+                </div>
+                <button type="submit">Register</button>
+                <div id="registerError" class="error hidden"></div>
+            </form>
+        </div>
+        
+        <div class="form-section">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit">Login</button>
+                <div id="loginError" class="error hidden"></div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="authSuccess" class="hidden">
+        <h2>Authentication Successful</h2>
+        <p>You are now authenticated!</p>
+        <button id="logoutButton">Logout</button>
+        <button id="getUserButton">Get User Info</button>
+    </div>
+    
+    <h3>API Response</h3>
+    <pre id="apiResponse">No API calls made yet</pre>
+    
+    <script>
+        const API_URL = '/api';
+        let authToken = localStorage.getItem('auth_token');
+        let currentUser = null;
+        
+        // Check if already authenticated
+        if (authToken) {
+            document.getElementById('authSuccess').classList.remove('hidden');
+            getUserInfo();
+        }
+        
+        // Register Form
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const password_confirmation = document.getElementById('registerPasswordConfirmation').value;
+            const role = document.getElementById('registerRole').value;
+            const errorElement = document.getElementById('registerError');
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name, 
+                        email, 
+                        password, 
+                        password_confirmation,
+                        role
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('apiResponse').textContent = JSON.stringify(data, null, 2);
+                
+                if (!response.ok) {
+                    errorElement.textContent = data.message || 'Registration failed';
+                    errorElement.classList.remove('hidden');
+                    return;
+                }
+                
+                // Save auth token
+                localStorage.setItem('auth_token', data.token);
+                authToken = data.token;
+                currentUser = data.user;
+                
+                // Show success section and hide forms
+                document.getElementById('authSuccess').classList.remove('hidden');
+                errorElement.classList.add('hidden');
+                
+            } catch (error) {
+                errorElement.textContent = 'An error occurred during registration';
+                errorElement.classList.remove('hidden');
+                console.error('Registration error:', error);
+            }
+        });
+        
+        // Login Form
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorElement = document.getElementById('loginError');
+            
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                document.getElementById('apiResponse').textContent = JSON.stringify(data, null, 2);
+                
+                if (!response.ok) {
+                    errorElement.textContent = data.message || 'Login failed';
+                    errorElement.classList.remove('hidden');
+                    return;
+                }
+                
+                // Save auth token
+                localStorage.setItem('auth_token', data.token);
+                authToken = data.token;
+                currentUser = data.user;
+                
+                // Show success section and hide forms
+                document.getElementById('authSuccess').classList.remove('hidden');
+                errorElement.classList.add('hidden');
+                
+            } catch (error) {
+                errorElement.textContent = 'An error occurred during login';
+                errorElement.classList.remove('hidden');
+                console.error('Login error:', error);
+            }
+        });
+        
+        // Logout Button
+        document.getElementById('logoutButton').addEventListener('click', async () => {
+            if (!authToken) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('apiResponse').textContent = JSON.stringify(data, null, 2);
+                
+                // Clear auth state
+                localStorage.removeItem('auth_token');
+                authToken = null;
+                currentUser = null;
+                
+                // Hide success section
+                document.getElementById('authSuccess').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Logout error:', error);
+                document.getElementById('apiResponse').textContent = 'Error during logout: ' + error.message;
+            }
+        });
+        
+        // Get User Button
+        document.getElementById('getUserButton').addEventListener('click', getUserInfo);
+        
+        async function getUserInfo() {
+            if (!authToken) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/user`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('apiResponse').textContent = JSON.stringify(data, null, 2);
+                currentUser = data;
+                
+            } catch (error) {
+                console.error('Get user error:', error);
+                document.getElementById('apiResponse').textContent = 'Error fetching user data: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 
