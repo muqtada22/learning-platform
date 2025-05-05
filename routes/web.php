@@ -57,3 +57,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/courses/{course}/lessons/{lesson}/questions/{question}/answer', [QuestionController::class, 'answer'])
         ->name('questions.answer');
 });
+
+// Add a simple API status route
+Route::get('/api-status', function () {
+    return response()->json([
+        'status' => 'API is running',
+        'version' => '1.0',
+        'timestamp' => now()->toDateTimeString()
+    ]);
+});
