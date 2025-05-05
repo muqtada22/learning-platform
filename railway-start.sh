@@ -12,6 +12,10 @@ ls -la
 echo "🔍 PHP Version:"
 php -v
 
+# Run environment variable setup script
+echo "🔧 Setting up environment variables..."
+php railway-env-setup.php
+
 # Create database schema (fallback for migrations)
 if [ -f "database/schema/mysql-schema.sql" ]; then
   echo "📄 Found schema file, applying..."
