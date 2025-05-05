@@ -1,1 +1,1 @@
-web: vendor/bin/heroku-php-apache2 public/ 
+web: php artisan config:cache && php artisan route:cache && mysql -h $DATABASE_URL -u $MYSQLUSERNAME -p$MYSQLPASSWORD $MYSQLDATABASE < database/schema/mysql-schema.sql || true && php artisan migrate --force || true && vendor/bin/heroku-php-apache2 public/ || php -S 0.0.0.0:$PORT -t public 
